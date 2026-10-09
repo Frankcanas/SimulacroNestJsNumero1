@@ -1,114 +1,251 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# API REST Interna para Seguimiento Comercial (NestJS)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API REST interna desarrollada con **NestJS**, **TypeScript**, **TypeORM** y persistencia en **PostgreSQL**, empaquetada con **Docker & Docker Compose**. El sistema gestiona el ciclo de vida de solicitudes comerciales con control de acceso basado en roles (RBAC) en memoria, autorización mediante múltiples API Keys dinámicas, máquina de estados lineal estricta y documentación interactiva **Swagger/OpenAPI**.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## 🚀 Tecnologías Principales
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- **Framework**: [NestJS 12](https://nestjs.com/)
+- **Lenguaje**: TypeScript
+- **Persistencia**: [TypeORM](https://typeorm.io/) con [PostgreSQL 16](https://www.postgresql.org/)
+- **Validación y DTOs**: `class-validator` y `class-transformer`
+- **Contenedorización**: Docker & Docker Compose (Multi-stage build con Node 22 Alpine)
+- **Documentación Interactiva**: OpenAPI / Swagger UI
+- **Pruebas Automatizadas**: Vitest (Unit & Integration tests)
 
-## Project setup
+---
 
-```bash
-$ npm install
+## 🔐 Modelo de Seguridad y Roles
+
+Todos los endpoints funcionales exigen obligatoriamente las siguientes cabeceras:
+
+1. `x-api-key`: Clave secreta validada dinámicamente contra la variable de entorno `API_KEYS` (soporte multiclave separado por comas). No existen claves quemadas (*hardcoded*) en el código fuente.
+2. `x-user`: Identificador de usuario validado contra el catálogo en memoria del sistema. Inyecta el usuario autenticado en la petición y desacredita cualquier rol enviado en el body.
+
+### Catálogo de Usuarios en Memoria y Roles
+
+| Usuario (`x-user`) | Rol | Alcance y Permisos |
+|---|---|---|
+| `admin`, `admin1` | **admin** | Control y visibilidad total: consulta y modifica el estado de cualquier solicitud. |
+| `supervisor`, `supervisor1` | **supervisor** | Supervisión comercial: consulta y modifica el estado de cualquier solicitud. |
+| `asesor1`, `asesor2`, `asesor_carlos` | **asesor** | Asesor en contacto con clientes: registra solicitudes y consulta/modifica **únicamente sus propias solicitudes**. |
+
+---
+
+## 🔄 Máquina de Estados de Solicitudes
+
+El ciclo de vida de una solicitud comercial es estrictamente **lineal y finito**:
+
+```
+[ PENDIENTE ]  ───►  [ EN_GESTION ]  ───►  [ RESUELTA ]
 ```
 
-## Compile and run the project
+- **Transiciones Permitidas**:
+  - `PENDIENTE` ➔ `EN_GESTION`: Permitida al iniciar la atención por supervisor, admin o el asesor responsable.
+  - `EN_GESTION` ➔ `RESUELTA`: Permitida al finalizar la gestión con el cliente.
+- **Transiciones Prohibidas**:
+  - `PENDIENTE` ➔ `RESUELTA`: Rechazada (prohibido salto directo sin pasar por gestión previa).
+  - `RESUELTA` ➔ Cualquier estado: Rechazada (**las solicitudes resueltas jamás se reabren**).
+  - Modificación de solicitudes ajenas por parte de un asesor: Rechazada con `403 Forbidden`.
 
+---
+
+## 📋 Requisitos Previos
+
+- [Docker](https://docs.docker.com/get-docker/) y [Docker Compose](https://docs.docker.com/compose/) instalados y en ejecución.
+- (Opcional para desarrollo local) Node.js >= 20 y npm >= 10.
+
+---
+
+## 🛠️ Instalación y Configuración
+
+### 1. Clonar el repositorio
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+git clone <URL_DEL_REPOSITORIO>
+cd SimulacroNestJs
 ```
 
-## Run tests
-
+### 2. Configurar variables de entorno
+Copia la plantilla de variables de entorno [.env.example](.env.example) a un nuevo archivo `.env`:
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+cp .env.example .env
 ```
 
-## Deployment
+El archivo [.env.example](.env.example) incluye:
+```env
+# Configuración del Servidor
+PORT=3000
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+# Claves de Acceso API (soporte multiclave separadas por coma)
+API_KEYS=clave_dev_1,clave_dev_2
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+# Base de Datos PostgreSQL
+DB_HOST=postgres
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+DB_NAME=solicitudes_db
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+---
 
-## Observability
+## 🐳 Ejecución con Docker (Recomendado)
 
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
+Inicia todos los servicios (Base de datos PostgreSQL 16 y la API en NestJS) en segundo plano:
 
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
+```bash
+docker compose up --build -d
+```
 
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
+- **API REST**: `http://localhost:3000`
+- **Documentación Swagger UI**: `http://localhost:3000/api/docs`
+- **Base de Datos PostgreSQL**: `localhost:5433` (mapeo externo para herramientas de administración como DBeaver / pgAdmin)
 
-## Resources
+### Comandos útiles de Docker:
+```bash
+# Ver estado de los contenedores
+docker compose ps
 
-Check out a few resources that may come in handy when working with NestJS:
+# Ver logs en tiempo real de la API
+docker compose logs -f api
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observer](https://observer.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+# Detener los contenedores
+docker compose down
+```
 
-## Support
+---
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## 💻 Ejecución Local (Sin Docker)
 
-## Stay in touch
+Si dispones de una instancia local de PostgreSQL:
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+1. Instalar dependencias:
+   ```bash
+   npm install --legacy-peer-deps
+   ```
 
-## License
+2. Ajustar `DB_HOST=localhost` en tu archivo `.env`.
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+3. Iniciar en modo desarrollo:
+   ```bash
+   npm run start:dev
+   ```
+
+4. Compilar para producción:
+   ```bash
+   npm run build
+   npm run start:prod
+   ```
+
+---
+
+## 📖 Documentación Interactiva (Swagger / OpenAPI)
+
+Una vez en ejecución, accede a la documentación interactiva en:
+
+👉 **[http://localhost:3000/api/docs](http://localhost:3000/api/docs)**
+
+### Cómo probar desde Swagger UI:
+1. Haz clic en el botón superior verde **Authorize**.
+2. En `x-api-key`, introduce una clave válida (ej. `clave_dev_1`).
+3. En `x-user`, introduce un usuario válido (ej. `admin` o `asesor1`).
+4. Haz clic en **Authorize** y luego en **Close**.
+5. ¡Prueba cualquier endpoint interactivamente con **Try it out**!
+
+---
+
+## 📡 Endpoints de la API y Ejemplos de Consumo con `curl`
+
+### 1. Registrar una nueva solicitud (`POST /solicitudes`)
+```bash
+curl -i -X POST http://localhost:3000/solicitudes \
+  -H "x-api-key: clave_dev_1" \
+  -H "x-user: asesor1" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cliente": "Empresa Alfa S.A.S.",
+    "descripcion": "Solicitud de asesoría e implementación cloud"
+  }'
+```
+*Respuesta exitosa (`201 Created`):*
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "cliente": "Empresa Alfa S.A.S.",
+    "descripcion": "Solicitud de asesoría e implementación cloud",
+    "asesor": "asesor1",
+    "estado": "PENDIENTE",
+    "creadaEn": "2026-10-09T15:40:29.148Z",
+    "actualizadaEn": "2026-10-09T15:40:29.148Z"
+  }
+}
+```
+
+### 2. Consultar listado de solicitudes (`GET /solicitudes`)
+- Si se envía `x-user: asesor1`, la consulta filtra automáticamente en PostgreSQL por `WHERE asesor = 'asesor1'`.
+- Si se envía `x-user: admin` o `x-user: supervisor`, retorna la totalidad de solicitudes.
+
+```bash
+curl -i http://localhost:3000/solicitudes \
+  -H "x-api-key: clave_dev_1" \
+  -H "x-user: asesor1"
+```
+
+### 3. Consultar solicitud por ID (`GET /solicitudes/:id`)
+```bash
+curl -i http://localhost:3000/solicitudes/1 \
+  -H "x-api-key: clave_dev_1" \
+  -H "x-user: asesor1"
+```
+
+### 4. Actualizar estado de una solicitud (`PATCH /solicitudes/:id/estado`)
+```bash
+curl -i -X PATCH http://localhost:3000/solicitudes/1/estado \
+  -H "x-api-key: clave_dev_1" \
+  -H "x-user: asesor1" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "estado": "EN_GESTION"
+  }'
+```
+
+---
+
+## 🛡️ Formato Estandarizado de Respuestas
+
+### Respuesta Exitosa (`200 OK` / `201 Created`):
+```json
+{
+  "success": true,
+  "data": <payload>
+}
+```
+
+### Respuesta de Error Normalizada:
+```json
+{
+  "statusCode": 400,
+  "message": "Transición inválida: Queda terminantemente prohibido el salto directo de PENDIENTE a RESUELTA",
+  "timestamp": "2026-10-09T15:40:59.686Z"
+}
+```
+
+---
+
+## 🧪 Pruebas Automatizadas
+
+El proyecto cuenta con una cobertura completa de pruebas unitarias sobre todas las historias de usuario y criterios de aceptación Gherkin:
+
+```bash
+# Ejecutar suite de pruebas con Vitest
+npm test
+
+# Modo observador (watch)
+npm run test:watch
+
+# Reporte de cobertura
+npm run test:cov
+```
