@@ -249,3 +249,22 @@ npm run test:watch
 # Reporte de cobertura
 npm run test:cov
 ```
+
+---
+
+## 📸 Carpeta de Evidencias de Pruebas
+
+Para revisión del Team Leader (TL) y aseguramiento de calidad, en la carpeta [`evidencias/`](./evidencias/) se encuentran capturas gráficas de cada uno de los escenarios principales:
+
+1. **`01_pruebas_automatizadas_vitest.png`**: Cobertura de 47/47 pruebas unitarias exitosas.
+2. **`02_seguridad_api_key_401.png`**: Rechazo de peticiones sin `x-api-key` autorizada (401).
+3. **`03_seguridad_usuarios_roles_401_403.png`**: Validación de usuarios y control de roles (401 y 403).
+4. **`04_registro_solicitud_post_201.png`**: Creación exitosa de solicitudes (201 Created).
+5. **`05_validacion_dto_400.png`**: Rechazo de payloads con fallos de validación en DTO (400).
+6. **`06_consulta_filtro_asesor_vs_admin_200.png`**: Filtro por asesor vs vista global para supervisor y admin.
+7. **`07_consulta_por_id_y_proteccion_recurso_403_404.png`**: Aislamiento de solicitudes por asesor (403) y búsqueda por ID inexistente (404).
+8. **`08_transiciones_estado_maquina_estados.png`**: Cumplimiento del ciclo `PENDIENTE` ➔ `EN_GESTION` ➔ `RESUELTA`.
+9. **`09_documentacion_swagger_ui.png`**: Interfaz de Swagger UI interactiva en `/api/docs`.
+10. **`10_despliegue_docker_compose_up.png`**: Despliegue de los servicios con Docker Compose.
+
+Consulta la guía completa de evidencias en [evidencias/README.md](./evidencias/README.md).
