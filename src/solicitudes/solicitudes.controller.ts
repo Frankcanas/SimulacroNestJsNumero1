@@ -97,6 +97,10 @@ export class SolicitudesController {
   @ApiResponse({ status: 401, description: 'API Key o usuario no válidos' })
   @ApiResponse({ status: 403, description: 'Acceso denegado a solicitud de otro asesor' })
   @ApiResponse({ status: 404, description: 'Solicitud no encontrada' })
+  @ApiResponse({
+    status: 409,
+    description: 'Conflicto en la máquina de estados o reapertura prohibida',
+  })
   async updateEstado(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateEstadoDto: UpdateEstadoDto,
