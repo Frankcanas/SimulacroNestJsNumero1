@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { SolicitudesModule } from './solicitudes/solicitudes.module';
 import { Solicitud } from './solicitudes/entities/solicitud.entity';
+import { CommonModule } from './common/common.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { Solicitud } from './solicitudes/entities/solicitud.entity';
       }),
     }),
     AuthModule,
+    CommonModule,
     SolicitudesModule,
   ],
   controllers: [AppController],
