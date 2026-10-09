@@ -24,6 +24,12 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
+    const request = context.switchToHttp().getRequest<RequestWithUser>();
+    const url = request.url || '';
+    if (url.startsWith('/api/docs') || url.startsWith('/api/docs-json')) {
+      return true;
+    }
+
     const requiredRoles = this.reflector.getAllAndOverride<(Role | string)[]>(
       ROLES_KEY,
       [context.getHandler(), context.getClass()],
@@ -34,7 +40,6 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest<RequestWithUser>();
     const user = request.user;
 
     if (!user || !user.role) {

@@ -32,6 +32,11 @@ export class UserGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<RequestWithUser>();
+    const url = request.url || '';
+    if (url.startsWith('/api/docs') || url.startsWith('/api/docs-json')) {
+      return true;
+    }
+
     const userHeader = request.headers['x-user'];
 
     if (!userHeader || typeof userHeader !== 'string' || userHeader.trim() === '') {

@@ -27,6 +27,11 @@ export class ApiKeyGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<Request>();
+    const url = request.url || '';
+    if (url.startsWith('/api/docs') || url.startsWith('/api/docs-json')) {
+      return true;
+    }
+
     const apiKeyHeader = request.headers['x-api-key'];
 
     if (!apiKeyHeader || typeof apiKeyHeader !== 'string' || apiKeyHeader.trim() === '') {
